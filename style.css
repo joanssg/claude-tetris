@@ -226,3 +226,66 @@ kbd {
   color: #4fc3f7;
 }
 .freeze.hidden { display: none; }
+
+/* ---- Combo / B2B ---- */
+.combo-value {
+  font-size: 20px;
+  color: var(--muted);
+}
+
+.combo-value.active {
+  color: #ffb74d;
+  animation: pulse 0.5s ease-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+/* ---- Banner sobre el tablero ---- */
+.banner {
+  position: absolute;
+  top: 30%;
+  left: 0;
+  width: 300px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  font-weight: 800;
+  letter-spacing: 2px;
+  font-size: 20px;
+  color: #ffd54f;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.8), 0 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+.banner.tspin { color: #ba68c8; }
+.banner.perfect { color: #4fc3f7; font-size: 24px; }
+
+.banner.show {
+  animation: banner-pop 1.4s ease-out forwards;
+}
+
+@keyframes banner-pop {
+  0% { opacity: 0; transform: translateY(10px) scale(0.6); }
+  15% { opacity: 1; transform: translateY(0) scale(1.15); }
+  30% { transform: scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-30px); }
+}
+
+.shake {
+  animation: shake 0.3s;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-4px, 2px); }
+  40% { transform: translate(4px, -2px); }
+  60% { transform: translate(-3px, -1px); }
+  80% { transform: translate(3px, 1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shake, .combo-value.active { animation: none; }
+}

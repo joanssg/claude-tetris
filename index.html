@@ -30,6 +30,15 @@
         </div>
 
         <div class="panel-section">
+          <span class="label">COMBO</span>
+          <span class="value combo-value" id="combo">-</span>
+        </div>
+        <div class="panel-section">
+          <span class="label">BACK-TO-BACK</span>
+          <span class="value combo-value" id="b2b">-</span>
+        </div>
+
+        <div class="panel-section">
           <span class="label">NEXT</span>
           <canvas id="next-canvas" width="120" height="120"></canvas>
           <span id="freeze" class="freeze hidden"></span>
@@ -43,11 +52,14 @@
             <li><kbd>↓</kbd> bajar</li>
             <li><kbd>Space</kbd> caída</li>
             <li><kbd>P</kbd> pausa</li>
+            <li><kbd>M</kbd> sonido</li>
             <li>💣 bomba ⚡ rayo 🎨 tinte ⬇️ gravedad ❄️ congelar (cada 5 líneas)</li>
           </ul>
         </div>
       </aside>
     </div>
+
+    <div id="banner" class="banner"></div>
 
     <div id="overlay" class="overlay hidden">
       <div class="overlay-box">

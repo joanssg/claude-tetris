@@ -85,6 +85,15 @@ Después abre `http://localhost:8000` en el navegador.
 | `↓`       | Soft drop (bajar más rápido)      |
 | `Espacio` | Hard drop (caída instantánea)     |
 | `P`       | Pausar / reanudar                 |
+| `M`       | Silenciar / activar sonido        |
+
+### Combos y bonus
+
+- **Combo**: limpiar líneas en piezas consecutivas multiplica el puntaje (x2, x3… máx x10). Una pieza sin líneas reinicia el combo.
+- **T-spin**: rotar la T en un hueco (3+ esquinas ocupadas) y limpiar: 800 / 1200 / 1600 × nivel (sin líneas: 400).
+- **Back-to-Back**: Tetris o T-spin seguidos de otro → ×1.5.
+- **Perfect Clear**: dejar el tablero vacío → +1600 × nivel.
+- Efectos: sonidos (WebAudio), partículas, banner y temblor de pantalla.
 
 ---
 
