@@ -1,0 +1,48 @@
+name: Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  triage:
+    if: github.event.issue.pull_request == null && github.actor != 'github-actions[bot]' && !endsWith(github.actor, '[bot]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Triage issue with Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: |
+            --allowed-tools "Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh label list:*),Read,Grep,Glob"
+          prompt: |
+            Eres un asistente de triage de issues para este repo (Tetris en JavaScript vanilla: index.html, style.css, game.js; ver CLAUDE.md para la arquitectura).
+
+            Repo: ${{ github.repository }}
+            Issue: #${{ github.event.issue.number }}
+            Evento: ${{ github.event.action }} (opened = nuevo, edited = el issue principal fue editado)
+
+            Pasos:
+            1. Lee el issue con `gh issue view ${{ github.event.issue.number }} --json title,body,labels,comments`.
+            2. Lista los labels existentes con `gh label list`. Elige SOLO labels que ya existan (tipo: bug, enhancement, documentation, question; y de area si existen: gameplay, ui, input, scoring, performance). NO crees labels nuevos.
+            3. Aplica los labels con `gh issue edit ${{ github.event.issue.number }} --add-label "a,b"`. Si el evento es `edited`, reevalua y quita con `--remove-label` solo los labels que ya no apliquen.
+            4. Investiga el codigo relevante (game.js, index.html, style.css) con Read/Grep/Glob para ubicar la causa probable.
+            5. Publica UN comentario de diagnostico en el issue, en espanol, que empiece con la linea `<!-- claude-triage -->` y tenga estas secciones:
+               - **Resumen**: el problema en 1-2 frases.
+               - **Tipo y severidad**: labels elegidos y por que.
+               - **Causa probable**: archivo/funcion concreta.
+               - **Archivos afectados**.
+               - **Pasos sugeridos de solucion**: lista concreta para implementar despues.
+               - **Informacion faltante**: preguntas al autor si el issue es ambiguo.
+            6. Si el evento es `edited` y en los comentarios ya existe uno que empieza con `<!-- claude-triage -->`, actualizalo con `gh issue comment ${{ github.event.issue.number }} --edit-last --body "..."` en vez de crear otro.
+
+            Reglas: no modifiques archivos del repo, no cierres el issue, no comentes nada mas que el diagnostico. Se conciso.
