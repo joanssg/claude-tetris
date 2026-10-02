@@ -64,7 +64,7 @@ const bannerEl = document.getElementById('banner');
 const gameContainer = document.querySelector('.game-container');
 
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
-let specialsGiven, pendingSpecial, freezeLeft;
+let specialsGiven, pendingSpecial, freezeLeft, runStartLevel = 1;
 let combo, b2b, lastMoveRotate, particles = [];
 
 // ---- Audio (WebAudio, sin assets) ----
@@ -296,8 +296,8 @@ function clearLines(tspin = false) {
       specialsGiven = Math.floor(lines / SPECIAL_EVERY);
       pendingSpecial = true;
     }
-    level = Math.floor(lines / 10) + 1;
-    dropInterval = Math.max(100, 1000 - (level - 1) * 90);
+    level = Math.max(runStartLevel, Math.floor(lines / 10) + 1);
+    dropInterval = intervalForLevel(level);
     updateHUD();
   }
 }
@@ -498,17 +498,20 @@ function endGame() {
   overlay.classList.remove('hidden');
 }
 
+function intervalForLevel(lv) {
+  return Math.max(100, 1000 - (lv - 1) * 90);
+}
+
 function togglePause() {
   if (gameOver) return;
   paused = !paused;
   if (!paused) {
+    hidePauseMenu();
     lastTime = performance.now();
     loop(lastTime);
   } else {
     cancelAnimationFrame(animId);
-    overlayTitle.textContent = 'PAUSA';
-    overlayScore.textContent = '';
-    overlay.classList.remove('hidden');
+    showPauseMenu();
   }
 }
 
@@ -540,10 +543,11 @@ function init() {
   board = createBoard();
   score = 0;
   lines = 0;
-  level = 1;
+  runStartLevel = startLevel;
+  level = runStartLevel;
   paused = false;
   gameOver = false;
-  dropInterval = 1000;
+  dropInterval = intervalForLevel(runStartLevel);
   dropAccum = 0;
   specialsGiven = 0;
   pendingSpecial = false;
@@ -558,6 +562,7 @@ function init() {
   spawn();
   updateHUD();
   overlay.classList.add('hidden');
+  hidePauseMenu();
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
@@ -581,7 +586,7 @@ document.addEventListener('keydown', e => {
     try { localStorage.setItem('tetris-muted', muted ? '1' : '0'); } catch (err) {}
     return;
   }
-  if (e.code === 'KeyP') { togglePause(); return; }
+  if (e.code === 'KeyP' || e.code === 'Escape') { togglePause(); return; }
   if (paused || gameOver) return;
   switch (e.code) {
     case 'ArrowLeft':
