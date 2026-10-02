@@ -4,17 +4,7 @@ const COLS = 10;
 const ROWS = 20;
 const BLOCK = 30;
 
-const COLORS = [
-  null,
-  '#4dd0e1', // I - cyan
-  '#ffd54f', // O - yellow
-  '#ba68c8', // T - purple
-  '#81c784', // S - green
-  '#e57373', // Z - red
-  '#90caf9', // J - pale blue
-  '#ffb74d', // L - orange
-  '#b0bec5', // WILD - comodín (se dibuja arcoíris)
-];
+let COLORS = SKINS.retro.colors;
 
 const WILD = 8;
 const SPECIAL_EVERY = 5;
@@ -64,8 +54,8 @@ const bannerEl = document.getElementById('banner');
 const gameContainer = document.querySelector('.game-container');
 
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
-let specialsGiven, pendingSpecial, freezeLeft;
-let combo, b2b, lastMoveRotate, particles = [];
+let specialsGiven, pendingSpecial, freezeLeft, runStartLevel = 1;
+let combo, maxCombo = 0, b2b, lastMoveRotate, particles = [];
 
 // ---- Audio (WebAudio, sin assets) ----
 let audioCtx = null;
@@ -146,7 +136,7 @@ function spawnParticles(rows, amount) {
         vx: (Math.random() - 0.5) * 6,
         vy: (Math.random() - 0.8) * 5,
         life: 1,
-        color: COLORS[Math.floor(Math.random() * 7) + 1],
+        colorIdx: Math.floor(Math.random() * 7) + 1,
       });
     }
   }
@@ -165,8 +155,11 @@ function updateParticles() {
 function drawParticles() {
   for (const p of particles) {
     ctx.globalAlpha = Math.max(0, p.life);
-    ctx.fillStyle = p.color;
+    const pc = COLORS[p.colorIdx];
+    ctx.fillStyle = pc;
+    if (currentSkin.glow) { ctx.shadowColor = pc; ctx.shadowBlur = 8; }
     ctx.fillRect(p.x, p.y, 4, 4);
+    ctx.shadowBlur = 0;
   }
   ctx.globalAlpha = 1;
 }
@@ -269,6 +262,7 @@ function clearLines(tspin = false) {
   if (cleared) {
     lines += cleared;
     combo++;
+    if (combo >= 2) maxCombo = Math.max(maxCombo, Math.min(combo, MAX_COMBO));
     const hard = tspin || cleared === 4;
     const useB2B = hard && b2b;
     b2b = hard;
@@ -296,8 +290,8 @@ function clearLines(tspin = false) {
       specialsGiven = Math.floor(lines / SPECIAL_EVERY);
       pendingSpecial = true;
     }
-    level = Math.floor(lines / 10) + 1;
-    dropInterval = Math.max(100, 1000 - (level - 1) * 90);
+    level = Math.max(runStartLevel, Math.floor(lines / 10) + 1);
+    dropInterval = intervalForLevel(level);
     updateHUD();
   }
 }
@@ -418,19 +412,7 @@ function drawSpecial(context, x, y, special, size, alpha) {
 
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
-  let color = COLORS[colorIndex];
-  if (colorIndex === WILD) {
-    const g = context.createLinearGradient(x * size, y * size, (x + 1) * size, (y + 1) * size);
-    ['#ef5350', '#ffd54f', '#81c784', '#4fc3f7', '#ba68c8'].forEach((c, i, a) => g.addColorStop(i / (a.length - 1), c));
-    color = g;
-  }
-  context.globalAlpha = alpha ?? 1;
-  context.fillStyle = color;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-  // highlight
-  context.fillStyle = 'rgba(255,255,255,0.12)';
-  context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
-  context.globalAlpha = 1;
+  currentSkin.drawBlock(context, x, y, colorIndex, size, alpha);
 }
 
 function drawGrid() {
@@ -496,19 +478,69 @@ function endGame() {
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
   overlay.classList.remove('hidden');
+  showRecordsOver();
 }
+
+function intervalForLevel(lv) {
+  return Math.max(100, 1000 - (lv - 1) * 90);
+}
+
+// ---- Records (ver records.js) ----
+const recOver = document.getElementById('rec-over');
+const recMsg = document.getElementById('rec-msg');
+const recForm = document.getElementById('rec-form');
+const recName = document.getElementById('rec-name');
+const recOverTable = document.getElementById('rec-over-table');
+const recStart = document.getElementById('rec-start');
+const recStartTable = document.getElementById('rec-start-table');
+let recPending = null;
+
+function showRecordsOver() {
+  const best = Records.noteGame(lines, maxCombo);
+  const extras = [best.combo && maxCombo > 1 ? 'Nuevo mejor combo' : '', best.lines && lines > 0 ? 'Nuevo récord de líneas' : '']
+    .filter(Boolean).join(' · ');
+  recPending = Records.qualifies(score) ? { score, lines, combo: maxCombo } : null;
+  recMsg.textContent = recPending ? '¡Entras en el Top 5!' : extras;
+  if (recPending && extras) recMsg.textContent += ' · ' + extras;
+  recForm.classList.toggle('hidden', !recPending);
+  Records.render(recOverTable);
+  recOver.classList.remove('hidden');
+  if (recPending) recName.focus();
+}
+
+recForm.addEventListener('submit', e => {
+  e.preventDefault();
+  if (!recPending) return;
+  const idx = Records.add(recName.value, recPending.score, recPending.lines, recPending.combo);
+  recPending = null;
+  recName.value = '';
+  recForm.classList.add('hidden');
+  recMsg.textContent = idx >= 0 ? `¡Guardado! Puesto #${idx + 1}` : '';
+  Records.render(recOverTable, idx);
+  restartBtn.focus();
+});
+
+document.getElementById('rec-play').addEventListener('click', () => {
+  recStart.classList.add('hidden');
+  init();
+});
+
+document.getElementById('rec-reset').addEventListener('click', () => {
+  if (!confirm('¿Borrar todos los records?')) return;
+  Records.reset();
+  Records.render(recStartTable);
+});
 
 function togglePause() {
   if (gameOver) return;
   paused = !paused;
   if (!paused) {
+    hidePauseMenu();
     lastTime = performance.now();
     loop(lastTime);
   } else {
     cancelAnimationFrame(animId);
-    overlayTitle.textContent = 'PAUSA';
-    overlayScore.textContent = '';
-    overlay.classList.remove('hidden');
+    showPauseMenu();
   }
 }
 
@@ -540,15 +572,19 @@ function init() {
   board = createBoard();
   score = 0;
   lines = 0;
-  level = 1;
+  runStartLevel = startLevel;
+  level = runStartLevel;
   paused = false;
   gameOver = false;
-  dropInterval = 1000;
+  dropInterval = intervalForLevel(runStartLevel);
   dropAccum = 0;
   specialsGiven = 0;
   pendingSpecial = false;
   freezeLeft = 0;
   combo = 0;
+  maxCombo = 0;
+  recPending = null;
+  recOver.classList.add('hidden');
   b2b = false;
   lastMoveRotate = false;
   particles = [];
@@ -558,9 +594,33 @@ function init() {
   spawn();
   updateHUD();
   overlay.classList.add('hidden');
+  hidePauseMenu();
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
+
+// ---- Skins ----
+let currentSkin = SKINS.retro;
+
+function applySkin(id) {
+  if (!SKINS[id]) id = 'retro';
+  currentSkin = SKINS[id];
+  COLORS = currentSkin.colors;
+  document.documentElement.dataset.skin = id;
+  if (skinSelect) skinSelect.value = id;
+  if (board && current) draw();
+  if (next) drawNext();
+}
+
+const skinSelect = document.getElementById('skin-select');
+if (skinSelect) {
+  skinSelect.addEventListener('change', () => {
+    applySkin(skinSelect.value);
+    try { localStorage.setItem('tetris-skin', skinSelect.value); } catch (e) {}
+    skinSelect.blur();
+  });
+}
+try { applySkin(localStorage.getItem('tetris-skin')); } catch (e) { applySkin('retro'); }
 
 const themeToggle = document.getElementById('theme-toggle');
 
@@ -570,18 +630,18 @@ themeToggle.addEventListener('click', () => {
   themeToggle.setAttribute('aria-pressed', light);
   themeToggle.textContent = light ? '🌙' : '☀️';
   themeToggle.blur();
-  draw();
-  drawNext();
+  if (board && current) { draw(); drawNext(); }
 });
 
 document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return; // escribir nombre no dispara atajos
   ensureAudio();
   if (e.code === 'KeyM') {
     muted = !muted;
     try { localStorage.setItem('tetris-muted', muted ? '1' : '0'); } catch (err) {}
     return;
   }
-  if (e.code === 'KeyP') { togglePause(); return; }
+  if (e.code === 'KeyP' || e.code === 'Escape') { togglePause(); return; }
   if (paused || gameOver) return;
   switch (e.code) {
     case 'ArrowLeft':
@@ -607,4 +667,6 @@ document.addEventListener('keydown', e => {
 
 restartBtn.addEventListener('click', init);
 
-init();
+// No arranca hasta pulsar Jugar (pantalla de inicio con records)
+gameOver = true;
+Records.render(recStartTable);
