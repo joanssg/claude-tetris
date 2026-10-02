@@ -4,17 +4,7 @@ const COLS = 10;
 const ROWS = 20;
 const BLOCK = 30;
 
-const COLORS = [
-  null,
-  '#4dd0e1', // I - cyan
-  '#ffd54f', // O - yellow
-  '#ba68c8', // T - purple
-  '#81c784', // S - green
-  '#e57373', // Z - red
-  '#90caf9', // J - pale blue
-  '#ffb74d', // L - orange
-  '#b0bec5', // WILD - comodín (se dibuja arcoíris)
-];
+let COLORS = SKINS.retro.colors;
 
 const WILD = 8;
 const SPECIAL_EVERY = 5;
@@ -146,7 +136,7 @@ function spawnParticles(rows, amount) {
         vx: (Math.random() - 0.5) * 6,
         vy: (Math.random() - 0.8) * 5,
         life: 1,
-        color: COLORS[Math.floor(Math.random() * 7) + 1],
+        colorIdx: Math.floor(Math.random() * 7) + 1,
       });
     }
   }
@@ -165,8 +155,11 @@ function updateParticles() {
 function drawParticles() {
   for (const p of particles) {
     ctx.globalAlpha = Math.max(0, p.life);
-    ctx.fillStyle = p.color;
+    const pc = COLORS[p.colorIdx];
+    ctx.fillStyle = pc;
+    if (currentSkin.glow) { ctx.shadowColor = pc; ctx.shadowBlur = 8; }
     ctx.fillRect(p.x, p.y, 4, 4);
+    ctx.shadowBlur = 0;
   }
   ctx.globalAlpha = 1;
 }
@@ -418,19 +411,7 @@ function drawSpecial(context, x, y, special, size, alpha) {
 
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
-  let color = COLORS[colorIndex];
-  if (colorIndex === WILD) {
-    const g = context.createLinearGradient(x * size, y * size, (x + 1) * size, (y + 1) * size);
-    ['#ef5350', '#ffd54f', '#81c784', '#4fc3f7', '#ba68c8'].forEach((c, i, a) => g.addColorStop(i / (a.length - 1), c));
-    color = g;
-  }
-  context.globalAlpha = alpha ?? 1;
-  context.fillStyle = color;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-  // highlight
-  context.fillStyle = 'rgba(255,255,255,0.12)';
-  context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
-  context.globalAlpha = 1;
+  currentSkin.drawBlock(context, x, y, colorIndex, size, alpha);
 }
 
 function drawGrid() {
@@ -566,6 +547,29 @@ function init() {
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
+
+// ---- Skins ----
+let currentSkin = SKINS.retro;
+
+function applySkin(id) {
+  if (!SKINS[id]) id = 'retro';
+  currentSkin = SKINS[id];
+  COLORS = currentSkin.colors;
+  document.documentElement.dataset.skin = id;
+  if (skinSelect) skinSelect.value = id;
+  if (board && current) draw();
+  if (next) drawNext();
+}
+
+const skinSelect = document.getElementById('skin-select');
+if (skinSelect) {
+  skinSelect.addEventListener('change', () => {
+    applySkin(skinSelect.value);
+    try { localStorage.setItem('tetris-skin', skinSelect.value); } catch (e) {}
+    skinSelect.blur();
+  });
+}
+try { applySkin(localStorage.getItem('tetris-skin')); } catch (e) { applySkin('retro'); }
 
 const themeToggle = document.getElementById('theme-toggle');
 
