@@ -76,6 +76,27 @@ body {
   border-color: var(--accent);
 }
 
+.skin-select {
+  background: var(--canvas-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.skin-select:hover {
+  border-color: var(--accent);
+}
+
+[data-skin="neon"] { --grid: #1a1a2e; }
+
+[data-skin="neon"] #board,
+[data-skin="neon"] #next-canvas {
+  background: #000000;
+}
+
 .game-title {
   font-size: 36px;
   font-weight: 800;
