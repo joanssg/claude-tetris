@@ -65,7 +65,7 @@ const gameContainer = document.querySelector('.game-container');
 
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
 let specialsGiven, pendingSpecial, freezeLeft;
-let combo, b2b, lastMoveRotate, particles = [];
+let combo, maxCombo = 0, b2b, lastMoveRotate, particles = [];
 
 // ---- Audio (WebAudio, sin assets) ----
 let audioCtx = null;
@@ -269,6 +269,7 @@ function clearLines(tspin = false) {
   if (cleared) {
     lines += cleared;
     combo++;
+    if (combo >= 2) maxCombo = Math.max(maxCombo, Math.min(combo, MAX_COMBO));
     const hard = tspin || cleared === 4;
     const useB2B = hard && b2b;
     b2b = hard;
@@ -496,7 +497,54 @@ function endGame() {
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
   overlay.classList.remove('hidden');
+  showRecordsOver();
 }
+
+// ---- Records (ver records.js) ----
+const recOver = document.getElementById('rec-over');
+const recMsg = document.getElementById('rec-msg');
+const recForm = document.getElementById('rec-form');
+const recName = document.getElementById('rec-name');
+const recOverTable = document.getElementById('rec-over-table');
+const recStart = document.getElementById('rec-start');
+const recStartTable = document.getElementById('rec-start-table');
+let recPending = null;
+
+function showRecordsOver() {
+  const best = Records.noteGame(lines, maxCombo);
+  const extras = [best.combo && maxCombo > 1 ? 'Nuevo mejor combo' : '', best.lines && lines > 0 ? 'Nuevo récord de líneas' : '']
+    .filter(Boolean).join(' · ');
+  recPending = Records.qualifies(score) ? { score, lines, combo: maxCombo } : null;
+  recMsg.textContent = recPending ? '¡Entras en el Top 5!' : extras;
+  if (recPending && extras) recMsg.textContent += ' · ' + extras;
+  recForm.classList.toggle('hidden', !recPending);
+  Records.render(recOverTable);
+  recOver.classList.remove('hidden');
+  if (recPending) recName.focus();
+}
+
+recForm.addEventListener('submit', e => {
+  e.preventDefault();
+  if (!recPending) return;
+  const idx = Records.add(recName.value, recPending.score, recPending.lines, recPending.combo);
+  recPending = null;
+  recName.value = '';
+  recForm.classList.add('hidden');
+  recMsg.textContent = idx >= 0 ? `¡Guardado! Puesto #${idx + 1}` : '';
+  Records.render(recOverTable, idx);
+  restartBtn.focus();
+});
+
+document.getElementById('rec-play').addEventListener('click', () => {
+  recStart.classList.add('hidden');
+  init();
+});
+
+document.getElementById('rec-reset').addEventListener('click', () => {
+  if (!confirm('¿Borrar todos los records?')) return;
+  Records.reset();
+  Records.render(recStartTable);
+});
 
 function togglePause() {
   if (gameOver) return;
@@ -549,6 +597,9 @@ function init() {
   pendingSpecial = false;
   freezeLeft = 0;
   combo = 0;
+  maxCombo = 0;
+  recPending = null;
+  recOver.classList.add('hidden');
   b2b = false;
   lastMoveRotate = false;
   particles = [];
@@ -570,11 +621,11 @@ themeToggle.addEventListener('click', () => {
   themeToggle.setAttribute('aria-pressed', light);
   themeToggle.textContent = light ? '🌙' : '☀️';
   themeToggle.blur();
-  draw();
-  drawNext();
+  if (board && current) { draw(); drawNext(); }
 });
 
 document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return; // escribir nombre no dispara atajos
   ensureAudio();
   if (e.code === 'KeyM') {
     muted = !muted;
@@ -607,4 +658,6 @@ document.addEventListener('keydown', e => {
 
 restartBtn.addEventListener('click', init);
 
-init();
+// No arranca hasta pulsar Jugar (pantalla de inicio con records)
+gameOver = true;
+Records.render(recStartTable);

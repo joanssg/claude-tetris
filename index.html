@@ -65,11 +65,30 @@
       <div class="overlay-box">
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
+        <div id="rec-over" class="rec-section hidden">
+          <p id="rec-msg" class="rec-msg"></p>
+          <form id="rec-form" class="rec-form" autocomplete="off">
+            <input id="rec-name" type="text" maxlength="12" placeholder="Tu nombre" aria-label="Nombre" />
+            <button id="rec-save" type="submit">Guardar</button>
+          </form>
+          <div id="rec-over-table"></div>
+        </div>
         <button id="restart-btn">Reiniciar</button>
+      </div>
+    </div>
+
+    <div id="rec-start" class="overlay">
+      <div class="overlay-box">
+        <p class="rec-title">TETRIS</p>
+        <p class="rec-sub">RECORDS</p>
+        <div id="rec-start-table"></div>
+        <button id="rec-play" type="button">Jugar</button>
+        <button id="rec-reset" class="rec-reset" type="button">Borrar records</button>
       </div>
     </div>
   </div>
 
+  <script src="records.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
