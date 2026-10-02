@@ -289,3 +289,22 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .shake, .combo-value.active { animation: none; }
 }
+
+/* ---- Menú de pausa ---- */
+.pause-box { min-width: 200px; }
+#pause-title { font-size: 28px; font-weight: 800; letter-spacing: 4px; color: var(--accent); }
+.pause-btn {
+  width: 100%;
+  background: var(--accent);
+  color: var(--btn-text);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pause-btn:hover { background: var(--accent-hover); }
+#pause-controls { list-style: none; padding: 0; margin: 0; font-size: 12px; text-align: left; display: flex; flex-direction: column; gap: 4px; }
+#pause-controls.hidden { display: none; }
+.pause-level-row { font-size: 13px; display: flex; gap: 8px; align-items: center; }
